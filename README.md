@@ -1,14 +1,30 @@
 # The Thousands
 
-A dice-elimination game, faithfully implemented from the printed rules. The same game runs three ways:
+A dice-elimination game, faithfully implemented from the printed rules.
+
+### ▶ Play online: **https://arhqzs.github.io/the-thousands/**
+Share that link — it opens the game in any browser, on phone or computer, no install needed.
+
+The same game also runs four ways:
 
 | Target | Artifact | How to run |
 | --- | --- | --- |
-| **Web** | `www/index.html` | Double-click it, or `npm run preview` → http://localhost:4173 |
+| **Web (hosted)** | GitHub Pages | Open **https://arhqzs.github.io/the-thousands/** |
+| **Web (local)** | `www/index.html` | Double-click it, or `npm run preview` → http://localhost:4173 |
 | **Desktop (Windows)** | `dist-desktop/TheThousands-win32-x64/TheThousands.exe` | Double-click the `.exe` (or share `TheThousands-Windows.zip`) |
 | **Android** | `TheThousands-debug.apk` / `TheThousands-release.apk` | Install on a phone (see below) — verified running on a real device |
 
-The game logic lives once in `www/logic.js` and is shared by all three; the desktop and Android builds are thin native shells around `www/`. Edit anything under `www/` and re-run the build scripts to update all three.
+The game logic lives once in `www/logic.js` and is shared by all of them; the desktop and Android builds are thin native shells around `www/`. Edit anything under `www/` and re-run the build/deploy scripts to update everything.
+
+## The hosted website
+The live site is published to **GitHub Pages** from this repo's `docs/` folder (a copy of `www/`). The repo is [github.com/arhqzs/the-thousands](https://github.com/arhqzs/the-thousands).
+
+After editing the game, publish the changes with one command:
+```powershell
+npm run deploy:web   # copies www/ -> docs/, commits, pushes; live ~1 min later
+```
+
+> It's pass-and-play (everyone shares one screen/device per game). True cross-device online multiplayer (separate phones in the same game) would need a small server and is a larger feature.
 
 ## Installing on Android
 

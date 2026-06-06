@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node test.js",
     "preview": "node server.js",
+    "deploy:web": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy-web.ps1",
     "desktop": "electron .",
     "desktop:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File build-desktop.ps1",
     "apk": "powershell -NoProfile -ExecutionPolicy Bypass -File build-apk.ps1",
