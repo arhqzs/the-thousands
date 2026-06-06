@@ -1,0 +1,43 @@
+{
+  "name": "the-thousands",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Thousands — a dice elimination game (web, desktop & Android).",
+  "main": "electron/main.js",
+  "scripts": {
+    "test": "node test.js",
+    "preview": "node server.js",
+    "desktop": "electron .",
+    "desktop:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File build-desktop.ps1",
+    "apk": "powershell -NoProfile -ExecutionPolicy Bypass -File build-apk.ps1",
+    "apk:release": "powershell -NoProfile -ExecutionPolicy Bypass -File build-apk.ps1 -Release",
+    "apk:gradle": "cap sync android && cd android && gradlew.bat assembleDebug",
+    "install:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File install-apk.ps1",
+    "install:apk:release": "powershell -NoProfile -ExecutionPolicy Bypass -File install-apk.ps1 -Release",
+    "dist:win": "electron-builder --win portable --publish never"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6",
+    "@capacitor/core": "^6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.thethousands.dice",
+    "productName": "The Thousands",
+    "files": [
+      "electron/**",
+      "www/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "win": {
+      "target": "portable"
+    }
+  }
+}

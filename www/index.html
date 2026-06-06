@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Thousands — Dice Elimination Game</title>
+<style>
+  :root{
+    --felt:#0b5d3b; --felt2:#073f29; --gold:#e8c66a; --gold2:#bd9a3c;
+    --ink:#10261c; --paper:#f5f1e6; --bad:#c0392b; --good:#2e8b57;
+    --line:rgba(255,255,255,.14); --chip:#114a34;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,Arial,sans-serif;
+    color:var(--paper);
+    background:
+      radial-gradient(120% 90% at 50% -10%, #0e7a4d 0%, var(--felt) 38%, var(--felt2) 100%);
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
+  h1{font-family:"Georgia",serif;letter-spacing:.5px}
+  a{color:var(--gold)}
+
+  /* ---- top bar ---- */
+  .topbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px;
+  }
+  .brand{margin-right:auto}
+  .brand .t{font-family:Georgia,serif;font-size:26px;color:var(--gold);line-height:1}
+  .brand .s{font-size:12px;letter-spacing:3px;text-transform:uppercase;opacity:.8}
+  .stat{
+    background:var(--chip);border:1px solid var(--line);border-radius:10px;
+    padding:6px 12px;min-width:80px;text-align:center
+  }
+  .stat .k{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;opacity:.7}
+  .stat .v{font-size:18px;font-weight:700;color:var(--gold)}
+  .stat.pot .v{color:#fff}
+
+  /* ---- layout ---- */
+  .grid{display:grid;grid-template-columns:1.4fr .9fr;gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .panel{
+    background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:14px;padding:14px
+  }
+  .panel h2{margin:0 0 10px;font-size:13px;letter-spacing:2px;text-transform:uppercase;opacity:.8}
+
+  /* ---- players ---- */
+  .players{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .pcard{
+    background:linear-gradient(180deg,#0d4e34,#0a3f2a);
+    border:1px solid var(--line);border-radius:12px;padding:10px;position:relative;
+    transition:transform .15s,box-shadow .15s
+  }
+  .pcard.current{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold2),0 8px 22px rgba(0,0,0,.35);transform:translateY(-2px)}
+  .pcard.elim{opacity:.45;filter:grayscale(.5)}
+  .pcard .nm{font-weight:700;display:flex;align-items:center;gap:6px}
+  .pcard .nm .crown{color:var(--gold)}
+  .pcard.elim .nm{text-decoration:line-through}
+  .badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:18px}
+  .badge{font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid var(--line)}
+  .badge.start{background:rgba(232,198,106,.16);color:var(--gold);border-color:var(--gold2)}
+  .badge.turn{background:rgba(255,255,255,.14)}
+  .badge.out{background:rgba(192,57,43,.25);color:#ffb4a8;border-color:#7a2a22}
+  .pcard .sc{font-size:22px;font-weight:800;margin-top:8px;color:#fff;font-variant-numeric:tabular-nums}
+  .pcard .sc small{font-size:11px;color:var(--gold);font-weight:600}
+  .pcard .rolls{font-size:11px;opacity:.7;margin-top:2px}
+
+  /* ---- dice ---- */
+  .dice{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .dice.big .die{width:56px;height:56px}
+  .die{
+    width:30px;height:30px;background:linear-gradient(160deg,#fff,#e9e6dc);
+    border-radius:7px;display:inline-grid;grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);padding:5px;gap:1px;
+    box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 -3px 4px rgba(0,0,0,.12)
+  }
+  .die .cell{display:flex;align-items:center;justify-content:center}
+  .die .dot{width:30%;height:30%;background:#1c1c1c;border-radius:50%}
+  .dice.big .die .dot{width:26%;height:26%}
+  .dice-empty{opacity:.5;font-size:12px;font-style:italic;margin-top:8px}
+  @keyframes pop{0%{transform:scale(.6) rotate(-12deg);opacity:0}100%{transform:scale(1);opacity:1}}
+  .dice.rolled .die{animation:pop .22s ease both}
+  .dice.rolled .die:nth-child(2){animation-delay:.04s}
+  .dice.rolled .die:nth-child(3){animation-delay:.08s}
+  .dice.rolled .die:nth-child(4){animation-delay:.12s}
+
+  /* ---- action ---- */
+  .now{font-size:13px;opacity:.85;margin-bottom:6px}
+  .now b{color:var(--gold)}
+  .turnname{font-family:Georgia,serif;font-size:24px;margin:2px 0 10px}
+  .hint{font-size:12.5px;opacity:.8;line-height:1.5;margin:6px 0}
+  .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .btn{
+    border:0;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer;
+    background:#15543a;color:#eafff3;border:1px solid var(--line);transition:filter .12s,transform .05s
+  }
+  .btn:hover{filter:brightness(1.12)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#3a2c06;border-color:#8c6f24}
+  .btn.danger{background:#7a2a22;color:#ffd9d2;border-color:#5a1d17}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---- doubling decide ---- */
+  .decide{display:grid;gap:8px;margin-top:10px}
+  .drow{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .drow .dn{flex:1;font-weight:600}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:transparent;color:#cfe;padding:6px 12px;cursor:pointer;font-weight:700;font-size:12px}
+  .seg button.on.acc{background:var(--good);color:#022}
+  .seg button.on.pass{background:var(--bad);color:#fff}
+
+  /* ---- log ---- */
+  #log{height:320px;overflow:auto;font-size:12.5px;line-height:1.55}
+  #log .li{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.06)}
+  #log .li:nth-child(odd){background:rgba(255,255,255,.03)}
+
+  /* ---- setup ---- */
+  .field{margin:10px 0}
+  .field label{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.8;margin-bottom:4px}
+  input[type=text],input[type=number]{
+    background:#0a3a27;border:1px solid var(--line);color:#fff;border-radius:9px;padding:10px;font-size:15px;width:100%
+  }
+  .plist{display:grid;gap:8px;margin:8px 0}
+  .pin{display:flex;gap:8px;align-items:center}
+  .pin input{flex:1}
+  .row2{display:flex;gap:12px}
+  .row2 .field{flex:1}
+
+  /* ---- winner ---- */
+  .winner{text-align:center;padding:30px 10px}
+  .winner .cup{font-size:64px}
+  .winner .wn{font-family:Georgia,serif;font-size:40px;color:var(--gold);margin:6px 0}
+  .winner .wp{font-size:20px}
+
+  details{margin-top:22px;background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:6px 14px}
+  summary{cursor:pointer;font-weight:700;letter-spacing:1px;padding:8px 0}
+  details .rules{font-size:13px;line-height:1.55;opacity:.92}
+  details .rules h3{margin:14px 0 2px;color:var(--gold);font-size:14px}
+  .foot{opacity:.5;font-size:11px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+
+  <script src="logic.js"></script>
+  <script>
+  "use strict";
+
+  /* ============================ state =================================== */
+  var LS = "thousands.v1";
+  var state;
+
+  function fresh(){
+    return {
+      phase:"SETUP", subPhase:null,
+      setup:{ names:["Player 1","Player 2","Player 3"], stake:"1", currency:"" },
+      players:[], baseStake:1, currency:"", pot:0, cube:1,
+      startingPlayerId:null, startingSeat:0, roundNumber:0, rollLimit:null,
+      turnOrder:[], currentTurnIndex:0,
+      lastDoublerId:null, pendingDouble:null,
+      startCandidates:[], startRolls:{}, startReady:false,
+      lastResolution:null, winnerId:null, _justRolled:null,
+      log:[]
+    };
+  }
+  function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }
+  function load(){ try{ var s=localStorage.getItem(LS); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+  /* ============================ helpers ================================= */
+  var L = window.Thousands;
+  function byId(id){ for(var i=0;i<state.players.length;i++) if(state.players[i].id===id) return state.players[i]; return null; }
+  function activePlayers(){ return state.players.filter(function(p){return !p.eliminated;}); }
+  function currentStake(){ return state.baseStake * state.cube; }
+  function fmtNum(x){ return Number.isInteger(x) ? String(x) : x.toFixed(2); }
+  function money(x){ return (state.currency||"") + fmtNum(x); }
+  function fmtScore(s){ return s.score + (s.isQuad ? ' <small>★ 4-of-a-kind</small>' : ''); }
+  function log(m){ state.log.push(m); }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  function clockwiseFrom(seat){
+    var n=state.players.length, a=[];
+    for(var i=0;i<n;i++) a.push(state.players[(seat+i)%n]);
+    return a;
+  }
+  function nextStartingSeat(oldSeat){
+    var n=state.players.length;
+    for(var i=1;i<=n;i++){ var idx=(oldSeat+i)%n; if(!state.players[idx].eliminated) return idx; }
+    return null;
+  }
+
+  /* ============================ setup =================================== */
+  function readSetup(){
+    var els=document.querySelectorAll(".pname");
+    state.setup.names = Array.prototype.map.call(els,function(el){return el.value;});
+    var st=document.getElementById("stakeInput"); if(st) state.setup.stake=st.value;
+    var cu=document.getElementById("currencyInput"); if(cu) state.setup.currency=cu.value;
+  }
+  function addPlayer(){ readSetup(); state.setup.names.push("Player "+(state.setup.names.length+1)); render(); }
+  function removePlayer(i){ readSetup(); state.setup.names.splice(i,1); render(); }
+
+  function startGame(){
+    readSetup();
+    var raw=state.setup.names, players=[];
+    for(var i=0;i<raw.length;i++){
+      var nm=(raw[i]||"").trim() || ("Player "+(i+1));
+      players.push({id:"p"+i,name:nm,seat:i,eliminated:false,score:null,dice:null,isQuad:false,rollsUsed:0,turnDone:false});
+    }
+    if(players.length<2){ alert("You need at least 2 players."); return; }
+    var stake=parseFloat(state.setup.stake);
+    if(!(stake>0)){ alert("Enter a stake greater than 0."); return; }
+    state.players=players; state.baseStake=stake;
+    state.currency=(state.setup.currency||"").trim();
+    state.pot=0; state.cube=1; state.roundNumber=0; state.log=[];
+    state.phase="DETERMINE_START";
+    state.startCandidates=players.map(function(p){return p.id;});
+    state.startRolls={}; state.startReady=false;
+    log(players.length+" players join. Base stake "+money(stake)+". Doubling cubes in play: "+(players.length-1)+".");
+    render();
+  }
+
+  /* ===================== determine starting player ====================== */
+  function rollForStart(){
+    state.startCandidates.forEach(function(id){ state.startRolls[id]=L.rollDie(); });
+    var vals=state.startCandidates.map(function(id){return state.startRolls[id];});
+    var max=Math.max.apply(null,vals);
+    var tied=state.startCandidates.filter(function(id){return state.startRolls[id]===max;});
+    if(tied.length===1){
+      var w=tied[0];
+      state.startingPlayerId=w; state.startingSeat=byId(w).seat; state.startReady=true;
+      log("Starting player decided: "+byId(w).name+" rolled the highest ("+max+").");
+    } else {
+      state.startCandidates=tied; state.startReady=false;
+      log("Tie at "+max+" between "+tied.map(function(id){return byId(id).name;}).join(", ")+" — roll off.");
+    }
+    render();
+  }
+  function confirmStartingPlayer(){ state.roundNumber=1; startRound(); render(); }
+
+  /* ============================ rounds ================================== */
+  function startRound(){
+    if(!byId(state.startingPlayerId) || byId(state.startingPlayerId).eliminated){
+      var ns=nextStartingSeat(state.startingSeat);
+      if(ns!=null){ state.startingSeat=ns; state.startingPlayerId=state.players[ns].id; }
+    }
+    state.cube=1; state.lastDoublerId=null; state.pendingDouble=null;
+    state.lastResolution=null; state.rollLimit=null; state._justRolled=null;
+    state.players.forEach(function(p){
+      if(!p.eliminated){ p.rollsUsed=0; p.score=null; p.dice=null; p.isQuad=false; p.turnDone=false; }
+    });
+    state.turnOrder = clockwiseFrom(state.startingSeat)
+      .filter(function(p){return !p.eliminated;})
+      .map(function(p){return p.id;});
+    state.currentTurnIndex=0;
+    state.phase="STARTING_PLAYER_TURN"; state.subPhase=null;
+    log("— Round "+state.roundNumber+" — "+byId(state.startingPlayerId).name+" starts. Cube reset to ×1.");
+  }
+
+  /* starting player */
+  function spRoll(){
+    var sp=byId(state.startingPlayerId);
+    if(sp.rollsUsed>=3) return;
+    var s=L.computeScore(L.rollFour());
+    sp.dice=s.sorted; sp.isQuad=s.isQuad; sp.score=s.score; sp.rollsUsed++;
+    state._justRolled=sp.id;
+    log(sp.name+" rolls "+s.sorted.join("-")+" = "+s.score+(s.isQuad?" (4-of-a-kind!)":"")+"  [roll "+sp.rollsUsed+"/3]");
+    render();
+  }
+  function spKeep(){
+    var sp=byId(state.startingPlayerId);
+    if(sp.rollsUsed<1) return;
+    sp.turnDone=true; state.rollLimit=sp.rollsUsed;
+    log(sp.name+" keeps "+sp.score+". Roll limit for the round is "+sp.rollsUsed+". Doubling is now open.");
+    state.phase="OTHER_PLAYERS"; state.subPhase="ROLLING"; state.currentTurnIndex=1;
+    state._justRolled=null;
+    positionCurrent();
+    render();
+  }
+
+  /* other players */
+  function positionCurrent(){
+    while(state.currentTurnIndex<state.turnOrder.length){
+      var p=byId(state.turnOrder[state.currentTurnIndex]);
+      if(p && !p.eliminated) return;
+      state.currentTurnIndex++;
+    }
+    resolvePhase();
+  }
+  function opRoll(){
+    var p=byId(state.turnOrder[state.currentTurnIndex]);
+    if(!p||p.eliminated){ positionCurrent(); render(); return; }
+    if(p.rollsUsed>=state.rollLimit) return;
+    var s=L.computeScore(L.rollFour());
+    p.dice=s.sorted; p.isQuad=s.isQuad; p.score=s.score; p.rollsUsed++;
+    state._justRolled=p.id;
+    log(p.name+" rolls "+s.sorted.join("-")+" = "+s.score+(s.isQuad?" (4-of-a-kind!)":"")+"  [roll "+p.rollsUsed+"/"+state.rollLimit+"]");
+    render();
+  }
+  function opKeep(){
+    var p=byId(state.turnOrder[state.currentTurnIndex]);
+    if(!p||p.eliminated){ positionCurrent(); render(); return; }
+    if(p.rollsUsed<1) return;
+    p.turnDone=true; log(p.name+" keeps "+p.score+".");
+    state.currentTurnIndex++; state._justRolled=null;
+    positionCurrent();
+    render();
+  }
+
+  /* doubling */
+  function openOffer(){ state.subPhase="OFFER_SELECT"; render(); }
+  function cancelOffer(){ state.subPhase="ROLLING"; state.pendingDouble=null; render(); }
+  function chooseOfferer(id){
+    state.pendingDouble={offererId:id, decisions:{}};
+    activePlayers().forEach(function(p){ if(p.id!==id) state.pendingDouble.decisions[p.id]="accept"; });
+    state.subPhase="OFFER_DECIDE"; render();
+  }
+  function setDecision(id,val){ state.pendingDouble.decisions[id]=val; render(); }
+  function confirmDouble(){
+    var pd=state.pendingDouble; if(!pd) return;
+    var offerer=byId(pd.offererId), preStake=currentStake(), anyAccept=false;
+    activePlayers().forEach(function(p){
+      if(p.id===pd.offererId) return;
+      if((pd.decisions[p.id]||"accept")==="pass"){
+        p.eliminated=true; state.pot+=preStake;
+        log(p.name+" PASSES the double, pays "+money(preStake)+" into the pot and leaves the game.");
+      } else { anyAccept=true; }
+    });
+    if(anyAccept){
+      state.cube*=2; state.lastDoublerId=pd.offererId;
+      log(offerer.name+" DOUBLES — stake is now "+money(currentStake())+" per player (cube ×"+state.cube+").");
+    } else {
+      state.lastDoublerId=pd.offererId;
+      log(offerer.name+" offered a double; everyone else passed.");
+    }
+    state.pendingDouble=null; state.subPhase="ROLLING"; state._justRolled=null;
+    if(activePlayers().length===1){ endGame(); render(); return; }
+    positionCurrent();
+    render();
+  }
+
+  /* resolve + win */
+  function resolvePhase(){
+    state.phase="RESOLVE"; state.subPhase=null; state._justRolled=null;
+    var active=activePlayers();
+    var res=L.evaluateElimination(active.map(function(p){return {id:p.id,score:p.score};}));
+    if(res.push){
+      state.lastResolution={push:true,min:res.min};
+      log("All remaining players tied at "+res.min+". Round is a push — replay with the cube reset.");
+      return;
+    }
+    var pay=currentStake()*(res.gammon?2:1);
+    var elim=res.eliminatedIds.map(byId);
+    elim.forEach(function(p){ p.eliminated=true; state.pot+=pay; });
+    var names=elim.map(function(p){return p.name;}).join(", ");
+    log(names+" "+(elim.length>1?"are":"is")+" eliminated with the low score "+res.min+
+        (res.gammon?" — GAMMON! (≥1000 behind) pays double":"")+", paying "+money(pay)+" each into the pot.");
+    var remaining=activePlayers();
+    state.lastResolution={push:false,eliminatedIds:res.eliminatedIds,min:res.min,
+      nextLowest:res.nextLowest,gammon:res.gammon,pay:pay,gameOver:remaining.length<=1};
+    if(remaining.length===1) log(remaining[0].name+" is the last player standing and wins the pot of "+money(state.pot)+"!");
+  }
+  function nextRound(){
+    if(state.lastResolution && state.lastResolution.gameOver){ endGame(); render(); return; }
+    state.roundNumber++; startRound(); render();
+  }
+  function replayRound(){ startRound(); render(); }
+  function endGame(){ state.phase="GAME_OVER"; var w=activePlayers()[0]; state.winnerId=w?w.id:null; }
+  function newGame(){ if(confirm("Start a brand new game? Current game will be lost.")){ state=fresh(); render(); } }
+
+  /* ============================ rendering =============================== */
+  function dieHTML(v){
+    var map={1:[5],2:[3,7],3:[3,5,7],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+    var on={}; (map[v]||[]).forEach(function(i){on[i]=1;});
+    var cells="";
+    for(var i=1;i<=9;i++) cells+='<span class="cell">'+(on[i]?'<span class="dot"></span>':'')+'</span>';
+    return '<span class="die" title="'+v+'">'+cells+'</span>';
+  }
+  function diceHTML(dice,big,animate){
+    if(!dice||!dice.length) return '<div class="dice-empty">— not rolled yet —</div>';
+    return '<div class="dice'+(big?' big':'')+(animate?' rolled':'')+'">'+dice.map(dieHTML).join("")+'</div>';
+  }
+
+  function topbarHTML(){
+    return ''+
+    '<div class="topbar">'+
+      '<div class="brand"><div class="t">The Thousands</div><div class="s">Dice Elimination</div></div>'+
+      (state.phase!=="SETUP" ? (
+        '<div class="stat"><div class="k">Round</div><div class="v">'+state.roundNumber+'</div></div>'+
+        '<div class="stat pot"><div class="k">Pot</div><div class="v">'+money(state.pot)+'</div></div>'+
+        '<div class="stat"><div class="k">Base stake</div><div class="v">'+money(state.baseStake)+'</div></div>'+
+        '<div class="stat"><div class="k">Stake now</div><div class="v">'+money(currentStake())+' <span style="font-size:11px;opacity:.7">×'+state.cube+'</span></div></div>'+
+        '<button class="btn ghost" style="padding:8px 12px" onclick="newGame()">New game</button>'
+      ) : '')+
+    '</div>';
+  }
+
+  function playersHTML(){
+    var cur = (state.phase==="OTHER_PLAYERS") ? state.turnOrder[state.currentTurnIndex]
+            : (state.phase==="STARTING_PLAYER_TURN" ? state.startingPlayerId : null);
+    var cards=state.players.map(function(p){
+      var cls="pcard"+(p.eliminated?" elim":"")+(p.id===cur?" current":"");
+      var badges="";
+      if(p.id===state.startingPlayerId && !p.eliminated) badges+='<span class="badge start">👑 Starter</span>';
+      if(p.id===cur) badges+='<span class="badge turn">▶ Rolling</span>';
+      if(p.eliminated) badges+='<span class="badge out">✖ Out</span>';
+      var limit = state.rollLimit ? state.rollLimit : (p.id===state.startingPlayerId?3:"?");
+      var rolls = (state.phase==="SETUP"||state.phase==="DETERMINE_START") ? "" :
+                  '<div class="rolls">rolls used: '+p.rollsUsed+(p.eliminated?"":" / "+limit)+'</div>';
+      var sc = (p.score!=null) ? '<div class="sc">'+fmtScore({score:p.score,isQuad:p.isQuad})+'</div>'
+                               : '<div class="sc" style="opacity:.4">—</div>';
+      return '<div class="'+cls+'">'+
+        '<div class="nm">'+(p.id===state.startingPlayerId&&!p.eliminated?'<span class="crown">👑</span>':'')+esc(p.name)+'</div>'+
+        '<div class="badges">'+badges+'</div>'+
+        diceHTML(p.dice,false,false)+ sc + rolls +
+      '</div>';
+    }).join("");
+    return '<div class="panel"><h2>Players</h2><div class="players">'+cards+'</div></div>';
+  }
+
+  function logHTML(){
+    var items=state.log.map(function(m){return '<div class="li">'+m+'</div>';}).join("");
+    return '<div class="panel"><h2>Game log</h2><div id="log">'+items+'</div></div>';
+  }
+
+  /* ---- action panels ---- */
+  function setupHTML(){
+    var rows=state.setup.names.map(function(n,i){
+      return '<div class="pin"><input class="pname" type="text" value="'+esc(n)+'" placeholder="Player '+(i+1)+'">'+
+        (state.setup.names.length>2?'<button class="btn danger" style="padding:8px 12px" onclick="removePlayer('+i+')">✕</button>':'')+
+      '</div>';
+    }).join("");
+    return topbarHTML()+
+    '<div class="panel" style="max-width:560px;margin:0 auto">'+
+      '<h2>New game</h2>'+
+      '<div class="field"><label>Players (2 or more)</label><div class="plist">'+rows+'</div>'+
+        '<button class="btn ghost" onclick="addPlayer()">+ Add player</button></div>'+
+      '<div class="row2">'+
+        '<div class="field"><label>Stake per elimination</label><input id="stakeInput" type="number" min="0" step="any" value="'+esc(state.setup.stake)+'"></div>'+
+        '<div class="field"><label>Currency symbol (optional)</label><input id="currencyInput" type="text" value="'+esc(state.setup.currency)+'" placeholder="$ / £ / chips"></div>'+
+      '</div>'+
+      '<div class="hint">Each round the lowest scorer pays the stake into the pot and is knocked out. '+
+      'A player who is ≥1000 behind pays a <b>gammon</b> (double). The doubling cube can raise the stakes mid-round. Last player standing takes the whole pot.</div>'+
+      '<div class="btns"><button class="btn primary" onclick="startGame()">Start game →</button></div>'+
+    '</div>'+ rulesHTML();
+  }
+
+  function determineHTML(){
+    var rolls=state.players.map(function(p){
+      var inRace=state.startCandidates.indexOf(p.id)>=0;
+      var v=state.startRolls[p.id];
+      return '<div class="pcard'+(state.startingPlayerId===p.id?" current":"")+(inRace?"":" elim")+'">'+
+        '<div class="nm">'+esc(p.name)+'</div>'+
+        (v?'<div class="dice">'+dieHTML(v)+'</div>':'<div class="dice-empty">—</div>')+
+      '</div>';
+    }).join("");
+    var btn;
+    if(state.startReady){
+      btn='<button class="btn primary" onclick="confirmStartingPlayer()">Begin Round 1 →</button>';
+    } else if(Object.keys(state.startRolls).length===0){
+      btn='<button class="btn primary" onclick="rollForStart()">Roll one die each</button>';
+    } else {
+      btn='<button class="btn primary" onclick="rollForStart()">Roll off the tie</button>';
+    }
+    return '<div class="panel"><h2>Who starts?</h2>'+
+      '<div class="hint">Each player rolls one die — highest roll starts and keeps the start each round (until eliminated). Play then proceeds clockwise.</div>'+
+      '<div class="players" style="margin-top:10px">'+rolls+'</div>'+
+      '<div class="btns">'+btn+'</div></div>';
+  }
+
+  function startingTurnHTML(){
+    var sp=byId(state.startingPlayerId);
+    var anim = state._justRolled===sp.id;
+    var ctrl;
+    if(sp.rollsUsed===0){
+      ctrl='<button class="btn primary" onclick="spRoll()">🎲 Roll 4 dice</button>';
+    } else if(sp.rollsUsed<3){
+      ctrl='<button class="btn primary" onclick="spRoll()">🎲 Roll again ('+sp.rollsUsed+'/3)</button>'+
+           '<button class="btn" onclick="spKeep()">Keep '+sp.score+'</button>';
+    } else {
+      ctrl='<button class="btn primary" onclick="spKeep()">Keep '+sp.score+' (final, 3/3)</button>';
+    }
+    return '<div class="panel">'+
+      '<h2>Starting player’s turn</h2>'+
+      '<div class="now">The starter sets the roll limit for everyone — up to <b>3</b> rolls.</div>'+
+      '<div class="turnname">👑 '+esc(sp.name)+'</div>'+
+      diceHTML(sp.dice,true,anim)+
+      (sp.score!=null?'<div class="sc" style="font-size:28px;font-weight:800;margin-top:8px">'+fmtScore({score:sp.score,isQuad:sp.isQuad})+'</div>':'')+
+      '<div class="hint">No doubling is allowed until the starter finishes.</div>'+
+      '<div class="btns">'+ctrl+'</div>'+
+    '</div>';
+  }
+
+  function otherTurnHTML(){
+    var p=byId(state.turnOrder[state.currentTurnIndex]);
+    if(state.subPhase==="OFFER_SELECT") return offerSelectHTML();
+    if(state.subPhase==="OFFER_DECIDE") return offerDecideHTML();
+
+    var anim=state._justRolled===p.id;
+    var rollBtns="";
+    if(p.rollsUsed===0){
+      rollBtns='<button class="btn primary" onclick="opRoll()">🎲 Roll 4 dice</button>';
+    } else if(p.rollsUsed<state.rollLimit){
+      rollBtns='<button class="btn primary" onclick="opRoll()">🎲 Roll again ('+p.rollsUsed+'/'+state.rollLimit+')</button>'+
+               '<button class="btn" onclick="opKeep()">Keep '+p.score+'</button>';
+    } else {
+      rollBtns='<button class="btn primary" onclick="opKeep()">Keep '+p.score+' (final, '+state.rollLimit+'/'+state.rollLimit+')</button>';
+    }
+    var canDouble = activePlayers().length>=2;
+    var dbl = canDouble ? '<button class="btn" onclick="openOffer()">⤴ Offer a double</button>' : '';
+    return '<div class="panel">'+
+      '<h2>Players’ rolls</h2>'+
+      '<div class="now">Roll limit this round: <b>'+state.rollLimit+'</b>. Pass the device to:</div>'+
+      '<div class="turnname">▶ '+esc(p.name)+'</div>'+
+      diceHTML(p.dice,true,anim)+
+      (p.score!=null?'<div class="sc" style="font-size:28px;font-weight:800;margin-top:8px">'+fmtScore({score:p.score,isQuad:p.isQuad})+'</div>':'')+
+      '<div class="hint">Before any roll, <b>any</b> active player may offer a double. The last player to double cannot double again until someone else does.</div>'+
+      '<div class="btns">'+rollBtns+dbl+'</div>'+
+    '</div>';
+  }
+
+  function offerSelectHTML(){
+    var elig=activePlayers().filter(function(p){return p.id!==state.lastDoublerId;});
+    var btns=elig.map(function(p){
+      return '<button class="btn" onclick="chooseOfferer(\''+p.id+'\')">'+esc(p.name)+'</button>';
+    }).join("");
+    return '<div class="panel">'+
+      '<h2>Offer a double</h2>'+
+      '<div class="hint">Which active player is offering the double? Current stake is '+money(currentStake())+
+      '; accepting players will play on for '+money(currentStake()*2)+'.</div>'+
+      '<div class="btns">'+btns+'</div>'+
+      '<div class="btns"><button class="btn ghost" onclick="cancelOffer()">Cancel</button></div>'+
+    '</div>';
+  }
+
+  function offerDecideHTML(){
+    var pd=state.pendingDouble, offerer=byId(pd.offererId);
+    var deciders=activePlayers().filter(function(p){return p.id!==pd.offererId;});
+    var rows=deciders.map(function(p){
+      var d=pd.decisions[p.id]||"accept";
+      return '<div class="drow"><div class="dn">'+esc(p.name)+'</div>'+
+        '<div class="seg">'+
+          '<button class="acc'+(d==="accept"?" on":"")+'" onclick="setDecision(\''+p.id+'\',\'accept\')">Accept</button>'+
+          '<button class="pass'+(d==="pass"?" on":"")+'" onclick="setDecision(\''+p.id+'\',\'pass\')">Pass &amp; pay '+money(currentStake())+'</button>'+
+        '</div></div>';
+    }).join("");
+    return '<div class="panel">'+
+      '<h2>'+esc(offerer.name)+' offers a double</h2>'+
+      '<div class="hint">Each player decides independently. <b>Accept</b> → play on at '+money(currentStake()*2)+
+      '. <b>Pass</b> → pay the current stake '+money(currentStake())+' now and leave the game.</div>'+
+      '<div class="decide">'+rows+'</div>'+
+      '<div class="btns"><button class="btn primary" onclick="confirmDouble()">Confirm</button>'+
+      '<button class="btn ghost" onclick="cancelOffer()">Cancel</button></div>'+
+    '</div>';
+  }
+
+  function resolveHTML(){
+    var r=state.lastResolution;
+    if(r.push){
+      return '<div class="panel"><h2>Round pushed</h2>'+
+        '<div class="hint">Everyone left tied at <b>'+r.min+'</b>, so no one is eliminated. Replay the round (cube resets to ×1).</div>'+
+        '<div class="btns"><button class="btn primary" onclick="replayRound()">Replay round</button></div></div>';
+    }
+    var names=r.eliminatedIds.map(function(id){return esc(byId(id).name);}).join(", ");
+    var btn = r.gameOver
+      ? '<button class="btn primary" onclick="nextRound()">🏆 See the winner →</button>'
+      : '<button class="btn primary" onclick="nextRound()">Next round →</button>';
+    return '<div class="panel"><h2>End of round '+state.roundNumber+'</h2>'+
+      '<div class="turnname" style="color:#ffb4a8">✖ '+names+' eliminated</div>'+
+      '<div class="hint">Low score: <b>'+r.min+'</b>'+(r.nextLowest!=null?' &nbsp;·&nbsp; next-lowest: '+r.nextLowest:'')+
+        (r.gammon?' &nbsp;·&nbsp; <b style="color:var(--gold)">GAMMON</b> (≥1000 gap → double stake)':'')+'<br>'+
+        'Paid into pot: <b>'+money(r.pay)+'</b> each. Pot is now <b>'+money(state.pot)+'</b>.</div>'+
+      '<div class="btns">'+btn+'</div></div>';
+  }
+
+  function winnerHTML(){
+    var w=byId(state.winnerId);
+    return '<div class="panel"><div class="winner">'+
+      '<div class="cup">🏆</div>'+
+      '<div class="wn">'+(w?esc(w.name):"—")+'</div>'+
+      '<div class="wp">wins the pot of <b>'+money(state.pot)+'</b></div>'+
+      '<div class="btns" style="justify-content:center"><button class="btn primary" onclick="newGame()">Play again</button></div>'+
+    '</div></div>';
+  }
+
+  function rulesHTML(){
+    return '<details><summary>📜 Rules reference</summary><div class="rules">'+
+    '<h3>Equipment</h3>4 six-sided dice · any number of players · agreed stake · doubling cubes = players − 1.'+
+    '<h3>Scoring a roll</h3>Roll 4 dice, sort high→low: the dice read as thousands-hundreds-tens-ones (6-6-6-5 = 6665; 6-4-3-3 = 6433). '+
+    'Four of a kind adds a zero (6-6-6-6 = 66660; 5-5-5-5 = 55550) and beats every non-four-of-a-kind.'+
+    '<h3>Rolling</h3>The starter rolls first, up to 3 times, stopping when they like — their last roll is final and sets the roll limit. '+
+    'Everyone else may roll up to that many times and may also stop early.'+
+    '<h3>Elimination</h3>Lowest final score is eliminated and pays the stake into the pot. Ties for lowest → all of them out.'+
+    '<h3>Gammon</h3>If the lowest score is ≥1000 below the next-lowest, that player pays double.'+
+    '<h3>Doubling cube</h3>Never at the start of a round. Only after the starter has finished their whole turn, and only before a roll, '+
+    'any active player may offer a double. Each other player accepts (plays on for double) or passes (pays the current stake and leaves).'+
+    '<h3>Redoubling</h3>A player who accepted may later redouble; whoever doubled last cannot double again until someone else has.'+
+    '<h3>Winning</h3>Last player standing takes the entire pot.'+
+    '<p style="opacity:.6;margin-top:12px">Interpretations this app makes where the sheet is silent: the cube resets to ×1 each new round; '+
+    'eliminations pay the current (cubed) stake, and a gammon doubles that; a passer pays the pre-double stake; '+
+    'if the last players all tie, the round is replayed; if the starter is eliminated, the next active player clockwise starts.</p>'+
+    '</div></details>';
+  }
+
+  function actionHTML(){
+    switch(state.phase){
+      case "STARTING_PLAYER_TURN": return startingTurnHTML();
+      case "OTHER_PLAYERS":        return otherTurnHTML();
+      case "RESOLVE":              return resolveHTML();
+      case "GAME_OVER":            return winnerHTML();
+      default: return "";
+    }
+  }
+
+  function render(){
+    save();
+    var app=document.getElementById("app");
+    if(state.phase==="SETUP"){ app.innerHTML=setupHTML(); return; }
+    if(state.phase==="DETERMINE_START"){
+      app.innerHTML=topbarHTML()+'<div class="grid"><div>'+determineHTML()+playersHTML()+'</div>'+logHTML()+'</div>'+rulesHTML();
+    } else {
+      app.innerHTML=topbarHTML()+'<div class="grid"><div>'+actionHTML()+'<div style="height:14px"></div>'+playersHTML()+'</div>'+logHTML()+'</div>'+rulesHTML();
+    }
+    var lg=document.getElementById("log"); if(lg) lg.scrollTop=lg.scrollHeight;
+  }
+
+  /* ============================ boot =================================== */
+  (function(){
+    var saved=load();
+    state = saved || fresh();
+    if(!state.setup) state.setup={names:["Player 1","Player 2","Player 3"],stake:"1",currency:""};
+    render();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "appId": "com.thethousands.dice",
+  "appName": "The Thousands",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

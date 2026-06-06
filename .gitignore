@@ -1,0 +1,17 @@
+# dependencies / build outputs
+node_modules/
+dist-desktop/
+apk-build/out/
+apk-build/assets/
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.idsig
+TheThousands-Windows.zip
+device-screenshot.png
+
+# signing secrets — NEVER commit these
+release.keystore
+keystore.properties
+apk-build/debug.keystore
