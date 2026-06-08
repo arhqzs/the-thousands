@@ -68,6 +68,13 @@
   .pcard .sc{font-size:22px;font-weight:800;margin-top:8px;color:#fff;font-variant-numeric:tabular-nums}
   .pcard .sc small{font-size:11px;color:var(--gold);font-weight:600}
   .pcard .rolls{font-size:11px;opacity:.7;margin-top:2px}
+  .pcard .nm .nmtext{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .iconbtn{background:transparent;border:0;color:#cfe;opacity:.55;cursor:pointer;font-size:13px;line-height:1;padding:3px 5px;border-radius:6px}
+  .iconbtn:hover{opacity:1;background:rgba(255,255,255,.14)}
+  .iconbtn.edit{margin-left:auto}
+  .iconbtn.ok{color:var(--gold)}
+  .iconbtn.cancel{color:#ffb4a8}
+  .nminput{flex:1;min-width:0;background:#0a3a27;border:1px solid var(--gold2);color:#fff;border-radius:6px;padding:4px 7px;font-size:14px;font-weight:700;font-family:inherit}
 
   /* ---- dice ---- */
   .dice{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
@@ -164,7 +171,7 @@
       turnOrder:[], currentTurnIndex:0,
       lastDoublerId:null, pendingDouble:null,
       startCandidates:[], startRolls:{}, startReady:false,
-      lastResolution:null, winnerId:null, _justRolled:null,
+      lastResolution:null, winnerId:null, _justRolled:null, editingPlayerId:null,
       log:[]
     };
   }
@@ -181,6 +188,14 @@
   function fmtScore(s){ return s.score + (s.isQuad ? ' <small>★ 4-of-a-kind</small>' : ''); }
   function log(m){ state.log.push(m); }
   function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+  function escAttr(s){ return esc(s).replace(/"/g,"&quot;"); }
+  function startEditName(id){ state.editingPlayerId=id; render(true); }
+  function cancelEditName(){ state.editingPlayerId=null; render(); }
+  function saveEditName(id){
+    var el=document.getElementById("edit-"+id);
+    if(el){ var v=(el.value||"").trim(); var p=byId(id); if(p && v) p.name=v; }
+    state.editingPlayerId=null; render();
+  }
 
   function clockwiseFrom(seat){
     var n=state.players.length, a=[];
@@ -412,8 +427,22 @@
                   '<div class="rolls">rolls used: '+p.rollsUsed+(p.eliminated?"":" / "+limit)+'</div>';
       var sc = (p.score!=null) ? '<div class="sc">'+fmtScore({score:p.score,isQuad:p.isQuad})+'</div>'
                                : '<div class="sc" style="opacity:.4">—</div>';
+      var crown=(p.id===state.startingPlayerId&&!p.eliminated)?'<span class="crown">👑</span>':'';
+      var nameHtml;
+      if(state.editingPlayerId===p.id){
+        nameHtml='<div class="nm editing">'+crown+
+          '<input class="nminput" id="edit-'+p.id+'" value="'+escAttr(p.name)+'" maxlength="24" '+
+            'onkeydown="if(event.key===\'Enter\'){saveEditName(\''+p.id+'\')}else if(event.key===\'Escape\'){cancelEditName()}">'+
+          '<button class="iconbtn ok" onclick="saveEditName(\''+p.id+'\')" title="Save name">✓</button>'+
+          '<button class="iconbtn cancel" onclick="cancelEditName()" title="Cancel">✕</button>'+
+        '</div>';
+      } else {
+        nameHtml='<div class="nm">'+crown+'<span class="nmtext">'+esc(p.name)+'</span>'+
+          '<button class="iconbtn edit" onclick="startEditName(\''+p.id+'\')" title="Rename">✏️</button>'+
+        '</div>';
+      }
       return '<div class="'+cls+'">'+
-        '<div class="nm">'+(p.id===state.startingPlayerId&&!p.eliminated?'<span class="crown">👑</span>':'')+esc(p.name)+'</div>'+
+        nameHtml+
         '<div class="badges">'+badges+'</div>'+
         diceHTML(p.dice,false,false)+ sc + rolls +
       '</div>';
@@ -615,7 +644,8 @@
     }
   }
 
-  function render(){
+  function render(keepEdit){
+    if(!keepEdit) state.editingPlayerId=null;
     save();
     var app=document.getElementById("app");
     if(state.phase==="SETUP"){ app.innerHTML=setupHTML(); return; }
@@ -625,6 +655,7 @@
       app.innerHTML=topbarHTML()+'<div class="grid"><div>'+actionHTML()+'<div style="height:14px"></div>'+playersHTML()+'</div>'+logHTML()+'</div>'+rulesHTML();
     }
     var lg=document.getElementById("log"); if(lg) lg.scrollTop=lg.scrollHeight;
+    if(state.editingPlayerId){ var ie=document.getElementById("edit-"+state.editingPlayerId); if(ie){ ie.focus(); ie.select(); } }
   }
 
   /* ============================ boot =================================== */
