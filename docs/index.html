@@ -510,14 +510,14 @@
       rollBtns='<button class="btn primary" onclick="opKeep()">Keep '+p.score+' (final, '+state.rollLimit+'/'+state.rollLimit+')</button>';
     }
     var canDouble = activePlayers().length>=2;
-    var dbl = canDouble ? '<button class="btn" onclick="openOffer()">⤴ Offer a double</button>' : '';
+    var dbl = canDouble ? '<button class="btn" onclick="openOffer()" style="border-color:var(--gold2);color:var(--gold)">⤴ Double (any player)</button>' : '';
     return '<div class="panel">'+
       '<h2>Players’ rolls</h2>'+
       '<div class="now">Roll limit this round: <b>'+state.rollLimit+'</b>. Pass the device to:</div>'+
       '<div class="turnname">▶ '+esc(p.name)+'</div>'+
       diceHTML(p.dice,true,anim)+
       (p.score!=null?'<div class="sc" style="font-size:28px;font-weight:800;margin-top:8px">'+fmtScore({score:p.score,isQuad:p.isQuad})+'</div>':'')+
-      '<div class="hint">Before any roll, <b>any</b> active player may offer a double. The last player to double cannot double again until someone else does.</div>'+
+      '<div class="hint"><b>Doubling is open.</b> Before any roll, <b>any</b> active player (not just '+esc(p.name)+') may double: tap <b>Double</b> and choose who is offering. Whoever doubled last cannot double again until someone else does.</div>'+
       '<div class="btns">'+rollBtns+dbl+'</div>'+
     '</div>';
   }
