@@ -230,7 +230,7 @@
     if(!(stake>0)){ alert("Enter a stake greater than 0."); return; }
     state.players=players; state.baseStake=stake;
     state.currency=(state.setup.currency||"").trim();
-    state.pot=0; state.cube=1; state.roundNumber=0; state.log=[];
+    state.pot=0; state.cube=1; state.lastDoublerId=null; state.pendingDouble=null; state.roundNumber=0; state.log=[];
     state.phase="DETERMINE_START";
     state.startCandidates=players.map(function(p){return p.id;});
     state.startRolls={}; state.startReady=false;
@@ -262,7 +262,7 @@
       var ns=nextStartingSeat(state.startingSeat);
       if(ns!=null){ state.startingSeat=ns; state.startingPlayerId=state.players[ns].id; }
     }
-    state.cube=1; state.lastDoublerId=null; state.pendingDouble=null;
+    state.pendingDouble=null;
     state.lastResolution=null; state.rollLimit=null; state._justRolled=null;
     state.players.forEach(function(p){
       if(!p.eliminated){ p.rollsUsed=0; p.score=null; p.dice=null; p.isQuad=false; p.turnDone=false; }
@@ -272,7 +272,7 @@
       .map(function(p){return p.id;});
     state.currentTurnIndex=0;
     state.phase="STARTING_PLAYER_TURN"; state.subPhase=null;
-    log("— Round "+state.roundNumber+" — "+byId(state.startingPlayerId).name+" starts. Cube reset to ×1.");
+    log("— Round "+state.roundNumber+" — "+byId(state.startingPlayerId).name+" starts."+(state.cube>1?" Cube carries over at ×"+state.cube+" (stake "+money(currentStake())+").":""));
   }
 
   /* starting player */
@@ -538,7 +538,7 @@
     } else {
       rollBtns='<button class="btn primary" onclick="opKeep()">Keep '+p.score+' (final, '+state.rollLimit+'/'+state.rollLimit+')</button>';
     }
-    var canDouble = activePlayers().length>=2;
+    var canDouble = activePlayers().length>=2 && p.rollsUsed < state.rollLimit;
     var dbl = canDouble ? '<button class="btn" onclick="openOffer()" style="border-color:var(--gold2);color:var(--gold)">⤴ Double (any player)</button>' : '';
     return '<div class="panel">'+
       '<h2>Players’ rolls</h2>'+
@@ -628,7 +628,7 @@
     'any active player may offer a double. Each other player accepts (plays on for double) or passes (pays the current stake and leaves).'+
     '<h3>Redoubling</h3>A player who accepted may later redouble; whoever doubled last cannot double again until someone else has.'+
     '<h3>Winning</h3>Last player standing takes the entire pot.'+
-    '<p style="opacity:.6;margin-top:12px">Interpretations this app makes where the sheet is silent: the cube resets to ×1 each new round; '+
+    '<p style="opacity:.6;margin-top:12px">Interpretations this app makes where the sheet is silent: the doubling cube carries over between rounds (it never resets within a game) — the raised stake stays in effect and whoever doubled last still cannot double again, even in a later round, until someone else does; '+
     'eliminations pay the current (cubed) stake, and a gammon doubles that; a passer pays the pre-double stake; '+
     'if the last players all tie, the round is replayed; if the starter is eliminated, the next active player clockwise starts.</p>'+
     '</div></details>';
