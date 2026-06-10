@@ -364,7 +364,7 @@
     var res=L.evaluateElimination(active.map(function(p){return {id:p.id,score:p.score};}));
     if(res.push){
       state.lastResolution={push:true,min:res.min};
-      log("All remaining players tied at "+res.min+". Round is a push — replay with the cube reset.");
+      log("All remaining players tied at "+res.min+". Round is a push — replay"+(state.cube>1?" (cube stays at ×"+state.cube+")":"")+".");
       return;
     }
     var pay=currentStake()*(res.gammon?2:1);
