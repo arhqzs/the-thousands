@@ -579,11 +579,13 @@
           '<button class="pass'+(d==="pass"?" on":"")+'" onclick="setDecision(\''+p.id+'\',\'pass\')">Pass &amp; pay '+money(currentStake())+'</button>'+
         '</div></div>';
     }).join("");
+    var offererRow='<div class="drow"><div class="dn">'+esc(offerer.name)+'</div>'+
+      '<div class="seg" style="border-color:transparent"><span style="padding:6px 10px;font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--gold)">OFFERING — IN</span></div></div>';
     return '<div class="panel">'+
       '<h2>'+esc(offerer.name)+' offers a double</h2>'+
-      '<div class="hint">Each player decides independently. <b>Accept</b> → play on at '+money(currentStake()*2)+
+      '<div class="hint">The offerer is in. <b>Every other</b> active player decides independently: <b>Accept</b> → play on at '+money(currentStake()*2)+
       '. <b>Pass</b> → pay the current stake '+money(currentStake())+' now and leave the game.</div>'+
-      '<div class="decide">'+rows+'</div>'+
+      '<div class="decide">'+offererRow+rows+'</div>'+
       '<div class="btns"><button class="btn primary" onclick="confirmDouble()">Confirm</button>'+
       '<button class="btn ghost" onclick="cancelOffer()">Cancel</button></div>'+
     '</div>';
@@ -593,7 +595,7 @@
     var r=state.lastResolution;
     if(r.push){
       return '<div class="panel"><h2>Round pushed</h2>'+
-        '<div class="hint">Everyone left tied at <b>'+r.min+'</b>, so no one is eliminated. Replay the round (cube resets to ×1).</div>'+
+        '<div class="hint">Everyone left tied at <b>'+r.min+'</b>, so no one is eliminated. Replay the round — the cube stays at ×'+state.cube+'.</div>'+
         '<div class="btns"><button class="btn primary" onclick="replayRound()">Replay round</button></div></div>';
     }
     var names=r.eliminatedIds.map(function(id){return esc(byId(id).name);}).join(", ");
