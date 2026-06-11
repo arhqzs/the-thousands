@@ -75,6 +75,10 @@
   .iconbtn.ok{color:var(--gold)}
   .iconbtn.cancel{color:#ffb4a8}
   .nminput{flex:1;min-width:0;background:#0a3a27;border:1px solid var(--gold2);color:#fff;border-radius:6px;padding:4px 7px;font-size:14px;font-weight:700;font-family:inherit}
+  .cube{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 5px;border-radius:6px;background:linear-gradient(160deg,#fff,#e9e6dc);color:#1c1c1c;font-weight:800;font-size:13px;border:1px solid #cdbf8f;box-shadow:0 2px 4px rgba(0,0,0,.3),inset 0 -2px 3px rgba(0,0,0,.12);flex:none}
+  .cube .x{font-size:9px;opacity:.55;margin-right:1px}
+  .cube.neutral{background:rgba(232,198,106,.12);color:var(--gold);border:1px dashed var(--gold2);box-shadow:none}
+  .cubehome{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:.75}
 
   /* ---- dice ---- */
   .dice{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
@@ -398,6 +402,10 @@
     if(!dice||!dice.length) return '<div class="dice-empty">— not rolled yet —</div>';
     return '<div class="dice'+(big?' big':'')+(animate?' rolled':'')+'">'+dice.map(dieHTML).join("")+'</div>';
   }
+  function cubeBadge(value,neutral){
+    return '<span class="cube'+(neutral?' neutral':'')+'" title="Doubling cube — stake ×'+value+
+      (neutral?'. No double yet; anyone may double.':'. This player holds the cube and may re-double.')+'"><span class="x">×</span>'+value+'</span>';
+  }
 
   function topbarHTML(){
     return ''+
@@ -416,6 +424,8 @@
   function playersHTML(){
     var cur = (state.phase==="OTHER_PLAYERS") ? state.turnOrder[state.currentTurnIndex]
             : (state.phase==="STARTING_PLAYER_TURN" ? state.startingPlayerId : null);
+    var holder=(state.lastDoublerId&&byId(state.lastDoublerId)&&!byId(state.lastDoublerId).eliminated)?state.lastDoublerId:null;
+    var cubeNeutral=(holder===null);
     var cards=state.players.map(function(p){
       var cls="pcard"+(p.eliminated?" elim":"")+(p.id===cur?" current":"");
       var badges="";
@@ -437,7 +447,8 @@
           '<button class="iconbtn cancel" onclick="cancelEditName()" title="Cancel">✕</button>'+
         '</div>';
       } else {
-        nameHtml='<div class="nm">'+crown+'<span class="nmtext">'+esc(p.name)+'</span>'+
+        var cubeOnCard=(!cubeNeutral && !p.eliminated && p.id!==holder)?cubeBadge(state.cube,false):'';
+        nameHtml='<div class="nm">'+crown+'<span class="nmtext">'+esc(p.name)+'</span>'+cubeOnCard+
           '<button class="iconbtn edit" onclick="startEditName(\''+p.id+'\')" title="Rename">✏️</button>'+
         '</div>';
       }
@@ -447,7 +458,8 @@
         diceHTML(p.dice,false,false)+ sc + rolls +
       '</div>';
     }).join("");
-    return '<div class="panel"><h2>Players</h2><div class="players">'+cards+'</div></div>';
+    var cubeCenter=cubeNeutral?'<div class="cubehome">'+cubeBadge(state.cube,true)+'<span>doubling cube</span></div>':'';
+    return '<div class="panel"><h2>Players</h2>'+cubeCenter+'<div class="players">'+cards+'</div></div>';
   }
 
   function logHTML(){
