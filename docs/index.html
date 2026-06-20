@@ -333,17 +333,13 @@
   function openOffer(){ state.subPhase="OFFER_SELECT"; render(); }
   // Who may offer a double right now. The window is open before every roll the
   // current player will still make. The last doubler can't double again, and the
-  // player currently rolling can only double before their FIRST roll (not after
-  // they've started) — but anyone else may double before any of their rolls.
+  // any active player (including the one currently rolling) may double before any
+  // of the roller's remaining rolls. The only one barred is whoever doubled last.
   function eligibleOfferers(){
     if(state.phase!=="OTHER_PLAYERS") return [];
     var p=byId(state.turnOrder[state.currentTurnIndex]);
     if(!p || state.rollLimit==null || p.rollsUsed>=state.rollLimit) return [];
-    return activePlayers().filter(function(x){
-      if(x.id===state.lastDoublerId) return false;
-      if(p.rollsUsed>0 && x.id===p.id) return false;
-      return true;
-    });
+    return activePlayers().filter(function(x){ return x.id!==state.lastDoublerId; });
   }
   function cancelOffer(){ state.subPhase="ROLLING"; state.pendingDouble=null; render(); }
   function chooseOfferer(id){
@@ -566,12 +562,9 @@
     }
     var elig = eligibleOfferers();
     var canDouble = activePlayers().length>=2 && elig.length>0;
-    var rollerEligible = elig.some(function(x){return x.id===p.id;});
-    var dbl = canDouble ? '<button class="btn" onclick="openOffer()" style="border-color:var(--gold2);color:var(--gold)">⤴ Double'+(rollerEligible?' (any player)':'')+'</button>' : '';
+    var dbl = canDouble ? '<button class="btn" onclick="openOffer()" style="border-color:var(--gold2);color:var(--gold)">⤴ Double (any player)</button>' : '';
     var hintHtml = canDouble
-      ? (rollerEligible
-          ? '<div class="hint"><b>Doubling is open.</b> Before '+esc(p.name)+' rolls, <b>any</b> active player may double — tap <b>Double</b> and choose who is offering. Whoever doubled last cannot double again until someone else does.</div>'
-          : '<div class="hint"><b>Doubling is open.</b> Any active player <b>except '+esc(p.name)+'</b> (currently rolling) may redouble before their next roll. Whoever doubled last cannot double again until someone else does.</div>')
+      ? '<div class="hint"><b>Doubling is open.</b> Before the next roll, <b>any</b> active player may double — tap <b>Double</b> and choose who is offering. Whoever doubled last cannot double again until someone else does.</div>'
       : '<div class="hint">Doubling is closed for this turn — it reopens before the next player rolls.</div>';
     return '<div class="panel">'+
       '<h2>Players’ rolls</h2>'+
@@ -663,7 +656,7 @@
     'any active player may offer a double. Each other player accepts (plays on for double) or passes (pays the current stake and leaves).'+
     '<h3>Redoubling</h3>A player who accepted may later redouble; whoever doubled last cannot double again until someone else has.'+
     '<h3>Winning</h3>Last player standing takes the entire pot.'+
-    '<p style="opacity:.6;margin-top:12px">Interpretations this app makes where the sheet is silent: the doubling cube carries over between rounds (it never resets within a game) — the raised stake stays in effect and whoever doubled last still cannot double again, even in a later round, until someone else does; a double can be offered before any roll while rolls remain — the player currently rolling may only double before their first roll, but other active players may double before any roll by that player; '+
+    '<p style="opacity:.6;margin-top:12px">Interpretations this app makes where the sheet is silent: the doubling cube carries over between rounds (it never resets within a game) — the raised stake stays in effect and whoever doubled last still cannot double again, even in a later round, until someone else does; a double can be offered before any roll while rolls remain, by any active player (only whoever doubled last is barred, until someone else doubles); '+
     'eliminations pay the current (cubed) stake, and a gammon doubles that; a passer pays the pre-double stake; '+
     'if the last players all tie, the round is replayed; if the starter is eliminated, the next active player clockwise starts.</p>'+
     '</div></details>';
